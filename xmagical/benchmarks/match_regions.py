@@ -73,6 +73,17 @@ class MatchRegionsEnv(BaseEnvXirl):
             assert self.rand_target_colour, \
                 "if shape count is randomised then shape colour must also " \
                 "be randomised"
+            
+        if self.use_state:
+            # Redefine the observation space if we are using states as opposed
+            # to pixels.
+            max_num_debris = 2 + 2 + 2 + 2
+            c = 4 if self.action_dim == 2 else 5
+            self.observation_space = spaces.Box(
+                np.array([-1] * (c + 4 * max_num_debris), dtype=np.float32),
+                np.array([+1] * (c + 4 * max_num_debris), dtype=np.float32),
+                dtype=np.float32,
+            )
     def on_reset(self):
         # make the robot
         robot_pos = np.asarray((-0.5, 0.1))
