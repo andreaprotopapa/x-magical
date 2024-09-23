@@ -3,6 +3,7 @@ from absl import app, flags
 
 from xmagical import register_envs
 from xmagical.utils import KeyboardEnvInteractor
+import matplotlib.pyplot as plt
 
 FLAGS = flags.FLAGS
 
@@ -29,6 +30,13 @@ def main(_):
         obs, rew, done, info = env.step(action)
         if obs.ndim != 3:
             obs = env.render("rgb_array")
+            plt.imshow(obs)
+            plt.show(block=False)
+            # Access the window manager for the plot window
+            plot_window = plt.gcf().canvas.manager.window
+            # Set the window position using geometry (x, y position)
+            plot_window.move(300, 300)  # Set the plot window at position (300, 300) on the screen
+            plt.pause(0.5)
         if done and FLAGS.exit_on_done:
             return
         if i[0] % 100 == 0:
@@ -37,6 +45,7 @@ def main(_):
         return obs
 
     viewer.run_loop(step)
+    plt.close()
 
 
 if __name__ == "__main__":

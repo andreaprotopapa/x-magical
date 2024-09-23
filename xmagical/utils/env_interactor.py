@@ -10,6 +10,7 @@ import numpy as np
 import pyglet.window
 from gym.envs.classic_control.rendering import SimpleImageViewer
 from PIL import Image
+import matplotlib.pyplot as plt
 
 UP_DOWN_MAG = 0.5
 ANGLE_MAG = np.radians(1.5)
@@ -99,6 +100,13 @@ class KeyboardEnvInteractor(SimpleImageViewer):
                 if obs is None:
                     return
                 self.imshow(obs)
+                plt.imshow(obs)
+                plt.show(block=False)
+                # Access the window manager for the plot window
+                plot_window = plt.gcf().canvas.manager.window
+                # Set the window position using geometry (x, y position)
+                plot_window.move(300, 300)  # Set the plot window at position (300, 300) on the screen
+                plt.pause(0.5)
             else:
                 # Needed to run the event loop.
                 self.imshow(self._last_image)

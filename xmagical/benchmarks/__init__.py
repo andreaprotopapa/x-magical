@@ -24,6 +24,8 @@ class Task(str, enum.Enum):
     """All tasks currently supported."""
 
     SWEEP_TO_TOP = "SweepToTop"
+    MATCH_REGIONS = "MatchRegions"
+
 
 
 class Embodiment(str, enum.Enum):
@@ -75,14 +77,24 @@ class Variant(str, enum.Enum):
 
 TASK_TO_EPOINT: Dict[Task, str] = {
     Task.SWEEP_TO_TOP: "xmagical.benchmarks.sweep_to_top:SweepToTopEnv",
+    Task.MATCH_REGIONS: "xmagical.benchmarks.match_regions:MatchRegionsEnv",
 }
 # Whether the task supports state-based observations.
 TASK_TO_STATE_AVAILABILITY: Dict[Task, bool] = {
     Task.SWEEP_TO_TOP: True,
+    Task.MATCH_REGIONS: True
 }
 # The variants the task supports. Not all tasks support all variants.
 TASK_TO_VARIANTS: Dict[Task, Tuple[Variant, ...]] = {
     Task.SWEEP_TO_TOP: (
+        Variant.DEMO,
+        Variant.LAYOUT,
+        Variant.SHAPE,
+        Variant.COLOR,
+        Variant.DYNAMICS,
+        Variant.ALL,
+    ),
+    Task.MATCH_REGIONS: (
         Variant.DEMO,
         Variant.LAYOUT,
         Variant.SHAPE,
@@ -198,9 +210,32 @@ def register_envs() -> bool:
         )
     ]
 
+    mr_ep_len = 120
+    match_regions_configs = [
+        (
+            # Longstick agent requires little time to solve the task so we
+            # shorten the episode length to make RL training converge faster.
+            mr_ep_len // 2
+            if embodiment == Embodiment.LONGSTICK
+            else mr_ep_len,
+            EnvConfig(
+                Task.MATCH_REGIONS,
+                embodiment,
+                ObservationSpace.PIXELS,
+                ViewMode.ALLOCENTRIC,
+                variant,
+                "v0",
+            ),
+        )
+        for embodiment, variant in itertools.product(
+            Embodiment, TASK_TO_VARIANTS[Task.MATCH_REGIONS]
+        )
+    ]
+
     # Collection of ALL env specifications.
     env_configs = [
         *sweep_to_top_configs,
+        *match_regions_configs
     ]
 
     # These are common to all environments, no matter the config.
