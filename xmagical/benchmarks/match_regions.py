@@ -5,7 +5,7 @@ from gym import spaces
 
 import numpy as np
 
-from magical.base_env import BaseEnv, ez_init
+#from magical.base_env import BaseEnv, ez_init
 #import magical.entities as en
 #import magical.geom as geom
 
@@ -17,7 +17,7 @@ import xmagical.entities as en
 # Max possible L2 distance (arena diagonal 2*sqrt(2)).
 D_MAX = 2.8284271247461903
 
-class MatchRegionsEnv(BaseEnvXirl, EzPickle):
+class MatchRegionsEnv(BaseEnvXirl):
     """Need to push blocks of a certain colour to the corresponding coloured
     region. Aim is for the robot to generalise _that_ rule instead of
     generalising others (e.g. "always move squares to this position" or
@@ -31,7 +31,7 @@ class MatchRegionsEnv(BaseEnvXirl, EzPickle):
             rand_colors: Whether to randomize the colors of the debris and the
                 goal zone.
     """
-    @ez_init()
+    #@ez_init()
     def __init__(
             self,
             use_state: bool = False,
