@@ -73,16 +73,6 @@ class MatchRegionsEnv(BaseEnvXirl, EzPickle):
             assert self.rand_target_colour, \
                 "if shape count is randomised then shape colour must also " \
                 "be randomised"
-        if self.use_state:
-            # Redefine the observation space if we are using states as opposed
-            # to pixels.
-            c = 4 if self.action_dim == 2 else 5
-            self.observation_space = spaces.Box(
-                np.array([-1] * (c + 4 * self.num_debris), dtype=np.float32),
-                np.array([+1] * (c + 4 * self.num_debris), dtype=np.float32),
-                dtype=np.float32,
-            )
-
     def on_reset(self):
         # make the robot
         robot_pos = np.asarray((-0.5, 0.1))
@@ -204,6 +194,16 @@ class MatchRegionsEnv(BaseEnvXirl, EzPickle):
 
         self.__debris_shapes = shape_ents
         self.add_entities(shape_ents)
+
+        if self.use_state:
+            # Redefine the observation space if we are using states as opposed
+            # to pixels.
+            c = 4 if self.action_dim == 2 else 5
+            self.observation_space = spaces.Box(
+                np.array([-1] * (c + 4 * len(self.__debris_shapes)), dtype=np.float32),
+                np.array([+1] * (c + 4 * len(self.__debris_shapes)), dtype=np.float32),
+                dtype=np.float32,
+            )
 
         # add this last so it shows up on top, but before layout randomisation,
         # since it needs to be added to the space before randomising
