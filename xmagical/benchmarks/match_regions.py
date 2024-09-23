@@ -271,6 +271,9 @@ class MatchRegionsEnv(BaseEnvXirl, EzPickle):
             target_goal_dists = np.mean(target_goal_dists)
             overlap_ents = self.__sensor_ref.get_overlapping_ents(
                 com_overlap=True, ent_index=self.__ent_index)
+            target_set = set(self.__target_shapes)
+            distractor_set = set(self.__distractor_shapes)
+            n_overlap_distractors = len(distractor_set & overlap_ents)
             if len(overlap_ents) == 0:
                 contamination_rate = 0
             else:
