@@ -270,27 +270,27 @@ class MatchRegionsEnv(BaseEnvXirl):
 ###################### NEW STUFF ######################
 
     def _dense_reward(self) -> float:
-            """Mean distance of all TARGET entitity positions to goal zone MULTIPLIED for the CONTAMINATION RATE."""
-            goal_x = self.__sensor_ref.x
-            goal_y = self.__sensor_ref.y
-            target_goal_dists = []
-            for target_shape in self.__target_shapes:
-                target_pos = target_shape.shape_body.position
-                goal_pos = (goal_x, goal_y)
-                dist = np.linalg.norm(target_pos - goal_pos)
-                target_goal_dists.append(dist)
-            target_goal_dists = np.mean(target_goal_dists)
-            overlap_ents = self.__sensor_ref.get_overlapping_ents(
-                com_overlap=True, ent_index=self.__ent_index)
-            target_set = set(self.__target_shapes)
-            distractor_set = set(self.__distractor_shapes)
-            n_overlap_distractors = len(distractor_set & overlap_ents)
-            if len(overlap_ents) == 0:
-                contamination_rate = 0
-            else:
-                # what fraction of the overlap set are distractors?
-                contamination_rate = n_overlap_distractors / len(overlap_ents)
-            return -1.0 * target_goal_dists * (1 + contamination_rate)
+        """Mean distance of all TARGET entitity positions to goal zone MULTIPLIED for the CONTAMINATION RATE."""
+        goal_x = self.__sensor_ref.goal_body.position[0]
+        goal_y = self.__sensor_ref.goal_body.position[1]
+        target_goal_dists = []
+        for target_shape in self.__target_shapes:
+            target_pos = target_shape.shape_body.position
+            goal_pos = (goal_x, goal_y)
+            dist = np.linalg.norm(target_pos - goal_pos)
+            target_goal_dists.append(dist)
+        target_goal_dists = np.mean(target_goal_dists)
+        overlap_ents = self.__sensor_ref.get_overlapping_ents(
+            com_overlap=True, ent_index=self.__ent_index)
+        target_set = set(self.__target_shapes)
+        distractor_set = set(self.__distractor_shapes)
+        n_overlap_distractors = len(distractor_set & overlap_ents)
+        if len(overlap_ents) == 0:
+            contamination_rate = 0
+        else:
+            # what fraction of the overlap set are distractors?
+            contamination_rate = n_overlap_distractors / len(overlap_ents)
+        return -1.0 * target_goal_dists * (1 + contamination_rate)
     
     def _sparse_reward(self) -> float:
         """Fraction of debris entities inside goal zone."""
@@ -308,8 +308,8 @@ class MatchRegionsEnv(BaseEnvXirl):
         robot_pos = self._robot.body.position
         robot_angle_cos = np.cos(self._robot.body.angle)
         robot_angle_sin = np.sin(self._robot.body.angle)
-        goal_x = self.__sensor_ref.x
-        goal_y = self.__sensor_ref.y
+        goal_x = self.__sensor_ref.goal_body.position[0]
+        goal_y = self.__sensor_ref.goal_body.position[1]
         target_pos = []
         robot_target_dist = []
         target_goal_dist = []
