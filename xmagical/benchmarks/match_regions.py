@@ -306,11 +306,11 @@ class MatchRegionsEnv(BaseEnvXirl):
         reward = -normalized_dist * (1 + reduced_contamination_rate)
 
         # Apply a scaling factor to ensure reward values are more distinguishable
-        scaling_factor = 10.0
+        scaling_factor = 1.0
         reward *= scaling_factor
 
-        # Optionally add a small positive baseline to ensure reward is not too negative
-        reward += 1.0
+        # Optionally add a small positive/negative baseline to ensure reward is not too negative
+        reward += 1
 
         return reward
     
