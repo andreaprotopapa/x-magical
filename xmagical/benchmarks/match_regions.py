@@ -274,23 +274,45 @@ class MatchRegionsEnv(BaseEnvXirl):
         goal_x = self.__sensor_ref.goal_body.position[0]
         goal_y = self.__sensor_ref.goal_body.position[1]
         target_goal_dists = []
+
+        # Calculate the mean distance of targets to the goal zone
         for target_shape in self.__target_shapes:
             target_pos = target_shape.shape_body.position
             goal_pos = (goal_x, goal_y)
             dist = np.linalg.norm(target_pos - goal_pos)
             target_goal_dists.append(dist)
-        target_goal_dists = np.mean(target_goal_dists)
+
+        mean_dist = np.mean(target_goal_dists)
+        # Normalize the distance
+        normalized_dist = mean_dist / D_MAX
+
+        # Calculate contamination rate
         overlap_ents = self.__sensor_ref.get_overlapping_ents(
             com_overlap=True, ent_index=self.__ent_index)
         target_set = set(self.__target_shapes)
         distractor_set = set(self.__distractor_shapes)
         n_overlap_distractors = len(distractor_set & overlap_ents)
+
         if len(overlap_ents) == 0:
             contamination_rate = 0
         else:
             # what fraction of the overlap set are distractors?
             contamination_rate = n_overlap_distractors / len(overlap_ents)
-        return -1.0 * target_goal_dists * (1 + contamination_rate)
+        
+        # Weaken the effect of contamination by taking the square root
+        reduced_contamination_rate = np.sqrt(contamination_rate)
+
+        # Adjust the reward formula
+        reward = -normalized_dist * (1 + reduced_contamination_rate)
+
+        # Apply a scaling factor to ensure reward values are more distinguishable
+        scaling_factor = 10.0
+        reward *= scaling_factor
+
+        # Optionally add a small positive baseline to ensure reward is not too negative
+        reward += 1.0
+
+        return reward
     
     def _sparse_reward(self) -> float:
         """Fraction of debris entities inside goal zone."""
