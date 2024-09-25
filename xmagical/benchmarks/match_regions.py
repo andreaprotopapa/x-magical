@@ -310,7 +310,7 @@ class MatchRegionsEnv(BaseEnvXirl):
         reward *= scaling_factor
 
         # Optionally add a small positive/negative baseline to ensure reward is not too negative
-        reward += 1
+        reward -= 0.5
 
         return reward
     
