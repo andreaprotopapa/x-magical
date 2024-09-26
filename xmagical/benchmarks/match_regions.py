@@ -271,16 +271,33 @@ class MatchRegionsEnv(BaseEnvXirl):
 
     def _dense_reward(self) -> float:
         """Mean distance of all TARGET entitity positions to goal zone MULTIPLIED for the CONTAMINATION RATE."""
+        # Goal position
         goal_x = self.__sensor_ref.goal_body.position[0]
         goal_y = self.__sensor_ref.goal_body.position[1]
-        target_goal_dists = []
+
+        # Proximity bonus: encourage robot to get closer to the cubes
+        proximity_bonus = 0
+        contact_bonus = 0
+        min_distance_to_cube = float('inf')
 
         # Calculate the mean distance of targets to the goal zone
+        target_goal_dists = []
+        robot_pos = self._robot.body.position
+
         for target_shape in self.__target_shapes:
             target_pos = target_shape.shape_body.position
             goal_pos = (goal_x, goal_y)
-            dist = np.linalg.norm(target_pos - goal_pos)
-            target_goal_dists.append(dist)
+            dist_to_goal  = np.linalg.norm(target_pos - goal_pos)
+            target_goal_dists.append(dist_to_goal )
+
+            # Check if the cube is outside the goal region
+            if len(self.__sensor_ref.get_overlapping_ents(ent_index=en.EntityIndex([target_shape]), com_overlap=True,)) == 0:
+                # Calculate distance between robot and the cube
+                dist_to_cube = np.linalg.norm((target_pos - robot_pos) / D_MAX)
+                min_distance_to_cube = min(min_distance_to_cube, dist_to_cube)
+
+                # Encourage proximity to cubes (inversely related to the distance)
+                proximity_bonus += max(0, 1 - min_distance_to_cube)
 
         mean_dist = np.mean(target_goal_dists)
         # Normalize the distance
@@ -309,8 +326,11 @@ class MatchRegionsEnv(BaseEnvXirl):
         scaling_factor = 10.0
         reward *= scaling_factor
 
+        reward += proximity_bonus  # Encourage approaching cubes
+
+
         # Optionally add a small positive/negative baseline to ensure reward is not too negative
-        reward += 4.5
+        reward += 4
 
         return reward
     
