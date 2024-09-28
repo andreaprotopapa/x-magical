@@ -306,7 +306,10 @@ class MatchRegionsEnv(BaseEnvXirl):
             com_overlap=True, ent_index=self.__ent_index)
         target_set = set(self.__target_shapes)
         n_overlap_target = len(target_set & overlap_ents)
-        precise_placement_bonus = n_overlap_target / len(overlap_ents)
+        if len(overlap_ents) == 0:
+            precise_placement_bonus = 0
+        else:
+            precise_placement_bonus = n_overlap_target / len(overlap_ents)
 
 
         # Calculate contamination rate    
