@@ -274,10 +274,10 @@ class MatchRegionsEnv(BaseEnvXirl):
         # Goal position
         goal_x = self.__sensor_ref.goal_body.position[0]
         goal_y = self.__sensor_ref.goal_body.position[1]
+        goal_pos = (goal_x, goal_y)
 
         # Proximity bonus: encourage robot to get closer to the cubes
         proximity_bonus = 0
-        contact_bonus = 0
         min_distance_to_cube = float('inf')
 
         # Calculate the mean distance of targets to the goal zone
@@ -286,7 +286,6 @@ class MatchRegionsEnv(BaseEnvXirl):
 
         for target_shape in self.__target_shapes:
             target_pos = target_shape.shape_body.position
-            goal_pos = (goal_x, goal_y)
             dist_to_goal  = np.linalg.norm(target_pos - goal_pos)
             target_goal_dists.append(dist_to_goal )
 
@@ -300,13 +299,17 @@ class MatchRegionsEnv(BaseEnvXirl):
                 proximity_bonus += max(0, 1 - min_distance_to_cube)
 
         mean_dist = np.mean(target_goal_dists)
-        # Normalize the distance
         normalized_dist = mean_dist / D_MAX
 
-        # Calculate contamination rate
+        # Add discrete bonus if target cube are completely in the goal region
         overlap_ents = self.__sensor_ref.get_overlapping_ents(
             com_overlap=True, ent_index=self.__ent_index)
         target_set = set(self.__target_shapes)
+        n_overlap_target = len(target_set & overlap_ents)
+        precise_placement_bonus = n_overlap_target / len(overlap_ents)
+
+
+        # Calculate contamination rate    
         distractor_set = set(self.__distractor_shapes)
         n_overlap_distractors = len(distractor_set & overlap_ents)
 
@@ -322,12 +325,10 @@ class MatchRegionsEnv(BaseEnvXirl):
         # Adjust the reward formula
         reward = -normalized_dist * (1 + reduced_contamination_rate)
 
-        # Apply a scaling factor to ensure reward values are more distinguishable
         scaling_factor = 10.0
-        reward *= scaling_factor
-
+        reward *= scaling_factor # Apply a scaling factor to ensure reward values are more distinguishable
         reward += proximity_bonus  # Encourage approaching cubes
-
+        reward += precise_placement_bonus * 5.0  # Increase weight of precise placement bonus
 
         # Optionally add a small positive/negative baseline to ensure reward is not too negative
         reward += 4
