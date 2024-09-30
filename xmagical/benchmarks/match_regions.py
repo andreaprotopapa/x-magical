@@ -331,7 +331,7 @@ class MatchRegionsEnv(BaseEnvXirl):
         scaling_factor = 10.0
         reward *= scaling_factor # Apply a scaling factor to ensure reward values are more distinguishable
         reward += proximity_bonus  # Encourage approaching cubes
-        reward += precise_placement_bonus * 5.0  # Increase weight of precise placement bonus
+        reward += precise_placement_bonus * 10.0  # Increase weight of precise placement bonus
 
         # Optionally add a small positive/negative baseline to ensure reward is not too negative
         reward += 4
