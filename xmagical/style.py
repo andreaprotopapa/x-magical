@@ -28,7 +28,7 @@ def lighten_rgb(rgb: RGBTuple, times: float = 1.0) -> RGBTuple:
 GOAL_LINE_THICKNESS = 0.01
 SHAPE_LINE_THICKNESS = 0.015
 ROBOT_LINE_THICKNESS = 0.01
-COLORS_RGB = {
+COLORS_RGB_XMAGICAL = {
     # I'm using Berkeley-branded versions of RGBY from
     # https://brand.berkeley.edu/colors/ (lightened).
     "blue": lighten_rgb(rgb(0x3B, 0x7E, 0xA1), 1.7),  # founder's rock
@@ -36,6 +36,16 @@ COLORS_RGB = {
     "red": lighten_rgb(rgb(0xEE, 0x1F, 0x60), 1.7),  # rose garden
     "green": lighten_rgb(rgb(0x85, 0x94, 0x38), 1.7),  # soybean
     "grey": rgb(162, 163, 175),  # cool grey (not sure which one)
+    "brown": rgb(224, 171, 118),  # buff
+}
+COLORS_RGB = {
+    # I'm using Berkeley-branded versions of RGBY from
+    # https://brand.berkeley.edu/colors/ (lightened).
+    "blue": rgb(0xd4, 0xb4, 0x7b),
+    "yellow": rgb(0x83, 0xd5, 0xff),
+    "red": lighten_rgb(rgb(0xEE, 0x1F, 0x60), 1.7),  # rose garden
+    "green": rgb(0x7d, 0xc8, 0xb2),
+    "grey": rgb(0xac, 0xac, 0xaa),
     "brown": rgb(224, 171, 118),  # buff
 }
 # "zoom out" factor when rendering arena; values above 1 will show parts of the

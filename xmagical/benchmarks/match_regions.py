@@ -60,8 +60,8 @@ class MatchRegionsEnv(BaseEnvXirl):
         self.rand_layout_minor = False
         self.rand_layout_full = rand_layout_full
         if rand_shapes:
-            self.rand_target_colour = True
-            self.rand_layout_full = True
+            self.rand_target_colour = False #True
+            self.rand_layout_full = False #True
 
         if self.rand_shape_count:
             assert self.rand_layout_full, \
