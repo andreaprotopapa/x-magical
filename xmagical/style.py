@@ -28,7 +28,7 @@ def lighten_rgb(rgb: RGBTuple, times: float = 1.0) -> RGBTuple:
 GOAL_LINE_THICKNESS = 0.01
 SHAPE_LINE_THICKNESS = 0.015
 ROBOT_LINE_THICKNESS = 0.01
-COLORS_RGB_XMAGICAL = {
+COLORS_RGB = {
     # I'm using Berkeley-branded versions of RGBY from
     # https://brand.berkeley.edu/colors/ (lightened).
     "blue": lighten_rgb(rgb(0x3B, 0x7E, 0xA1), 1.7),  # founder's rock
@@ -38,7 +38,7 @@ COLORS_RGB_XMAGICAL = {
     "grey": rgb(162, 163, 175),  # cool grey (not sure which one)
     "brown": rgb(224, 171, 118),  # buff
 }
-COLORS_RGB = {
+COLORS_RGB_MAGICAL = {
     # I'm using Berkeley-branded versions of RGBY from
     # https://brand.berkeley.edu/colors/ (lightened).
     "blue": rgb(0xd4, 0xb4, 0x7b),
