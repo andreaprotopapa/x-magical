@@ -6,6 +6,22 @@ from typing import Tuple
 RGBTuple = Tuple[float, float, float]
 
 
+# Global variable to store the environment
+current_env = "xmagical"  # default environment
+
+def set_environment(env: str):
+    """
+    Set the current environment for the style configuration.
+    
+    Args:
+        env (str): The environment to set, e.g., "magical" or any other.
+    """
+    global current_env
+    current_env = env
+
+def get_environment():
+    return current_env
+
 def rgb(r: float, g: float, b: float) -> RGBTuple:
     return (r / 255.0, g / 255.0, b / 255.0)
 
@@ -28,7 +44,7 @@ def lighten_rgb(rgb: RGBTuple, times: float = 1.0) -> RGBTuple:
 GOAL_LINE_THICKNESS = 0.01
 SHAPE_LINE_THICKNESS = 0.015
 ROBOT_LINE_THICKNESS = 0.01
-COLORS_RGB = {
+COLORS_RGB_XMAGICAL = {
     # I'm using Berkeley-branded versions of RGBY from
     # https://brand.berkeley.edu/colors/ (lightened).
     "blue": lighten_rgb(rgb(0x3B, 0x7E, 0xA1), 1.7),  # founder's rock
@@ -48,6 +64,9 @@ COLORS_RGB_MAGICAL = {
     "grey": rgb(0xac, 0xac, 0xaa),
     "brown": rgb(224, 171, 118),  # buff
 }
+
+COLORS_RGB = COLORS_RGB_XMAGICAL if current_env == "xmagical" else COLORS_RGB_MAGICAL
+
 # "zoom out" factor when rendering arena; values above 1 will show parts of the
 # arena border in allocentric view.
 ARENA_ZOOM_OUT = 1.02
