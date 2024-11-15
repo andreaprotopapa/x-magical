@@ -14,6 +14,20 @@ from xmagical.base_env import BaseEnv as BaseEnvXirl
 import xmagical.geom as geom
 import xmagical.entities as en
 
+colors = {
+          "red": en.ShapeColor.RED,
+          "green": en.ShapeColor.GREEN,
+          "blue": en.ShapeColor.BLUE,
+          "yellow": en.ShapeColor.YELLOW
+          }
+
+shapes = {
+            "square": en.ShapeType.SQUARE,
+            "pentagon": en.ShapeType.PENTAGON,
+            "star": en.ShapeType.STAR,
+            "circle": en.ShapeType.CIRCLE
+        }
+
 # Max possible L2 distance (arena diagonal 2*sqrt(2)).
 D_MAX = 2.8284271247461903
 
@@ -36,6 +50,7 @@ class MatchRegionsEnv(BaseEnvXirl):
             self,
             use_state: bool = False,
             use_dense_reward: bool = False,
+            config: dict = None, 
             rand_colors: bool = False,
             rand_shapes: bool = False,
             # shape_randomisation=ShapeRandLevel.NONE,
@@ -48,6 +63,7 @@ class MatchRegionsEnv(BaseEnvXirl):
         super().__init__(**kwargs)
         self.use_state = use_state
         self.use_dense_reward = use_dense_reward
+        self.config = config
         # self.rand_target_colour = rand_target_colour EDIT!
         # self.shape_randomisation = shape_randomisation
         # self.rand_shape_type = rand_shape_type  EDIT!
@@ -84,7 +100,7 @@ class MatchRegionsEnv(BaseEnvXirl):
                 np.array([+1] * (c + 4 * max_num_debris), dtype=np.float32),
                 dtype=np.float32,
             )
-    def on_reset(self):
+    def on_reset_default(self):
         # make the robot
         robot_pos = np.asarray((-0.5, 0.1))
         robot_angle = -math.pi * 1.2
@@ -244,6 +260,164 @@ class MatchRegionsEnv(BaseEnvXirl):
 
         # set up index for lookups
         self.__ent_index = en.EntityIndex(shape_ents)
+
+    def on_reset(self):
+        # make the robot
+        robot_pos = np.asarray((-0.5, 0.1))
+        robot_angle = -math.pi * 1.2
+        # if necessary, robot pose is randomised below
+        robot = self._make_robot(robot_pos, robot_angle)
+        # set up target colour/region/pose
+        if self.rand_target_colour:
+            target_colour = self.rng.choice(en.SHAPE_COLORS)
+        else:
+            target_colour = colors[self.config["target_color"]]
+        distractor_colours = [
+            c for c in en.SHAPE_COLORS if c != target_colour
+        ]
+        target_h = 0.7
+        target_w = 0.6
+        target_x = 0.1
+        target_y = 0.7
+        if self.rand_layout_minor or self.rand_layout_full:
+            if self.rand_layout_minor:
+                hw_bound = self.JITTER_TARGET_BOUND
+            else:
+                hw_bound = None
+            target_h, target_w = geom.randomise_hw(self.RAND_GOAL_MIN_SIZE,
+                                                   self.RAND_GOAL_MAX_SIZE,
+                                                   self.rng,
+                                                   current_hw=(target_h,
+                                                               target_w),
+                                                   linf_bound=hw_bound)
+        sensor = en.GoalRegion(target_x, target_y, target_h, target_w,
+                               target_colour)
+        self.add_entities([sensor])
+        self.__sensor_ref = sensor
+
+        # set up spec for remaining blocks
+        default_target_types = [
+            shapes[self.config["target"][i]['shape']] for i in range(len(self.config["target"]))
+        ]
+        default_distractor_types = [
+            [shapes[self.config["distractor"][i]['shape']] for i in range(len(self.config["distractor"])) if colors[self.config["distractor"][i]['color']]=='red'],
+            [shapes[self.config["distractor"][i]['shape']] for i in range(len(self.config["distractor"])) if colors[self.config["distractor"][i]['color']]=='blue'],
+            [shapes[self.config["distractor"][i]['shape']] for i in range(len(self.config["distractor"])) if colors[self.config["distractor"][i]['color']]=='yellow'],
+        ]
+        default_target_poses = [
+            # (x, y, theta)
+            tuple(self.config["target"][i]['pos']) for i in range(len(self.config["target"]))
+        ]
+        default_distractor_poses = [
+            # (x, y, theta)
+            [tuple(self.config["distractor"][i]['pos']) for i in range(len(self.config["distractor"])) if colors[self.config["distractor"][i]['color']]=='red'],
+            [tuple(self.config["distractor"][i]['pos']) for i in range(len(self.config["distractor"])) if colors[self.config["distractor"][i]['color']]=='blue'],
+            [tuple(self.config["distractor"][i]['pos']) for i in range(len(self.config["distractor"])) if colors[self.config["distractor"][i]['color']]=='yellow'],
+        ]
+
+        if self.rand_shape_count:
+            target_count = self.rng.randint(1, 2 + 1)
+            distractor_counts = [
+                self.rng.randint(0, 2 + 1) for c in distractor_colours
+            ]
+        else:
+            target_count = len(default_target_types)
+            distractor_counts = [len(lst) for lst in default_distractor_types]
+
+        if self.rand_shape_type:
+            shape_types_np = np.asarray(en.SHAPE_TYPES, dtype='object')
+            target_types = [
+                self.rng.choice(shape_types_np) for _ in range(target_count)
+            ]
+            distractor_types = [[
+                self.rng.choice(shape_types_np) for _ in range(dist_count)
+            ] for dist_count in distractor_counts]
+        else:
+            target_types = default_target_types
+            distractor_types = default_distractor_types
+
+        if self.rand_layout_full:
+            # will do post-hoc randomisation at the end
+            target_poses = [(0, 0, 0)] * target_count
+            distractor_poses = [[(0, 0, 0)] * dcount
+                                for dcount in distractor_counts]
+        else:
+            target_poses = default_target_poses
+            distractor_poses = default_distractor_poses
+
+        assert len(target_types) == target_count
+        assert len(target_poses) == target_count
+        assert len(distractor_types) == len(distractor_counts)
+        assert len(distractor_types) == len(distractor_colours)
+        assert len(distractor_types) == len(distractor_poses)
+        assert all(
+            len(types) == dcount
+            for types, dcount in zip(distractor_types, distractor_counts))
+        assert all(
+            len(poses) == dcount
+            for poses, dcount in zip(distractor_poses, distractor_counts))
+
+        self.__target_shapes = [
+            self._make_shape(shape_type=shape_type,
+                             color_name=target_colour,
+                             init_pos=(shape_x, shape_y),
+                             init_angle=shape_angle)
+            for shape_type, (shape_x, shape_y,
+                             shape_angle) in zip(target_types, target_poses)
+        ]
+        self.__distractor_shapes = []
+        for dist_colour, dist_types, dist_poses \
+                in zip(distractor_colours, distractor_types, distractor_poses):
+            for shape_type, (shape_x, shape_y, shape_angle) \
+                    in zip(dist_types, dist_poses):
+                dist_shape = self._make_shape(shape_type=shape_type,
+                                              color_name=dist_colour,
+                                              init_pos=(shape_x, shape_y),
+                                              init_angle=shape_angle)
+                self.__distractor_shapes.append(dist_shape)
+        shape_ents = self.__target_shapes + self.__distractor_shapes
+        self.__debris_shapes = shape_ents
+        self.add_entities(shape_ents)
+
+        if self.use_state:
+            # Redefine the observation space if we are using states as opposed
+            # to pixels.
+            c = 4 if self.action_dim == 2 else 5
+            self.observation_space = spaces.Box(
+                np.array([-1] * (c + 4 * len(self.__debris_shapes)), dtype=np.float32),
+                np.array([+1] * (c + 4 * len(self.__debris_shapes)), dtype=np.float32),
+                dtype=np.float32,
+            )
+
+        # add this last so it shows up on top, but before layout randomisation,
+        # since it needs to be added to the space before randomising
+        self.add_entities([robot])
+
+        if self.rand_layout_minor or self.rand_layout_full:
+            all_ents = (sensor, robot, *shape_ents)
+            if self.rand_layout_minor:
+                # limit amount by which position and rotation can be randomised
+                pos_limits = self.JITTER_POS_BOUND
+                rot_limits = self.JITTER_ROT_BOUND
+            else:
+                # no limits, can randomise as much as needed
+                assert self.rand_layout_full
+                pos_limits = rot_limits = None
+            # randomise rotations of all entities but goal region
+            rand_rot = [False] + [True] * (len(all_ents) - 1)
+
+            geom.pm_randomise_all_poses(self._space,
+                                        all_ents,
+                                        self.ARENA_BOUNDS_LRBT,
+                                        rng=self.rng,
+                                        rand_pos=True,
+                                        rand_rot=rand_rot,
+                                        rel_pos_linf_limits=pos_limits,
+                                        rel_rot_limits=rot_limits)
+
+        # set up index for lookups
+        self.__ent_index = en.EntityIndex(shape_ents)
+
 
     def score_on_end_of_traj(self):
         overlap_ents = self.__sensor_ref.get_overlapping_ents(
