@@ -210,7 +210,7 @@ def register_envs() -> bool:
         )
     ]
 
-    mr_ep_len = 120
+    mr_ep_len = 200
     match_regions_configs = [
         (
             # Longstick agent requires little time to solve the task so we
