@@ -70,6 +70,7 @@ class MatchRegionsEnv(BaseEnvXirl):
         # self.rand_shape_count = rand_shape_count  EDIT!
         # self.rand_layout_minor = rand_layout_minor  EDIT!
         # self.rand_layout_full = rand_layout_full  EDIT!
+        self.max_episode_steps = self.config["max_episode_steps"]
         self.rand_target_colour = rand_colors
         self.rand_shape_type = rand_shapes
         self.rand_shape_count = False
