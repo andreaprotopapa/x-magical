@@ -27,6 +27,7 @@ class SweepToTopEnv(BaseEnv):
         self,
         use_state: bool = False,
         use_dense_reward: bool = False,
+        config: dict = None,
         rand_layout_full: bool = False,
         rand_shapes: bool = False,
         rand_colors: bool = False,
@@ -47,6 +48,7 @@ class SweepToTopEnv(BaseEnv):
 
         self.use_state = use_state
         self.use_dense_reward = use_dense_reward
+        self.config = config
         self.rand_layout_full = rand_layout_full
         self.rand_shapes = rand_shapes
         self.rand_colors = rand_colors
