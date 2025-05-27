@@ -529,27 +529,46 @@ class MatchRegionsEnv(BaseEnvXirl):
         robot_pos = self._robot.body.position
         robot_angle_cos = np.cos(self._robot.body.angle)
         robot_angle_sin = np.sin(self._robot.body.angle)
+
         goal_x = self.__sensor_ref.goal_body.position[0]
         goal_y = self.__sensor_ref.goal_body.position[1]
+        gpos = (goal_x, goal_y)
+
+        # TARGET block features
         target_pos = []
         robot_target_dist = []
         target_goal_dist = []
-        for target_shape in self.__debris_shapes:
+        for target_shape in self.__target_shapes:
             tpos = target_shape.shape_body.position
-            target_pos.extend(tuple(tpos))
+            target_pos.extend(tuple(tpos))  # x, y
             robot_target_dist.append(np.linalg.norm(robot_pos - tpos) / D_MAX)
-            gpos = (goal_x, goal_y) # CHANGED: GOAL POSITION IS RANDOMIZED
             target_goal_dist.append(np.linalg.norm(tpos - gpos) / D_MAX)
+        
+        # Optional: DISTRACTOR features (separate section)
+        distractor_pos = []
+        robot_distractor_dist = []
+        distractor_goal_dist = []
+        for distractor_shape in self.__distractor_shapes:
+            dpos = distractor_shape.shape_body.position
+            distractor_pos.extend(tuple(dpos))
+            robot_distractor_dist.append(np.linalg.norm(robot_pos - dpos) / D_MAX)
+            distractor_goal_dist.append(np.linalg.norm(dpos - gpos) / D_MAX)
+        
         state = [
-            *tuple(robot_pos),  # 2
-            *target_pos,  # 2t
-            robot_angle_cos,  # 1
-            robot_angle_sin,  # 1
-            *robot_target_dist,  # t
-            *target_goal_dist,  # t
-        ]  # total = 4 + 4t
+            *tuple(robot_pos),             # 2
+            *target_pos,                   # 2 * num_targets
+            *distractor_pos,              # 2 * num_distractors
+            robot_angle_cos,              # 1
+            robot_angle_sin,              # 1
+            *robot_target_dist,           # num_targets
+            *target_goal_dist,            # num_targets
+            *robot_distractor_dist,       # num_distractors
+            *distractor_goal_dist,        # num_distractors
+        ]
+        
         if self.action_dim == 3:
             state.append(self._robot.finger_width)
+
         return np.array(state, dtype=np.float32)
 
     def reset(self) -> np.ndarray:
