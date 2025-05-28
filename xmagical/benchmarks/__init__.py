@@ -77,7 +77,7 @@ class Variant(str, enum.Enum):
 
 TASK_TO_EPOINT: Dict[Task, str] = {
     Task.SWEEP_TO_TOP: "xmagical.benchmarks.sweep_to_top:SweepToTopEnv",
-    Task.MATCH_REGIONS: "xmagical.benchmarks.match_regions:MatchRegions", # "xmagical.benchmarks.match_regions_khistory:MatchRegionsKHistoryEnv",
+    Task.MATCH_REGIONS: "xmagical.benchmarks.match_regions:MatchRegionsEnv", # "xmagical.benchmarks.match_regions_khistory:MatchRegionsKHistoryEnv",
 }
 # Whether the task supports state-based observations.
 TASK_TO_STATE_AVAILABILITY: Dict[Task, bool] = {
