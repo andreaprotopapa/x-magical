@@ -76,6 +76,7 @@ class MatchRegionsEnv(BaseEnvXirl):
         self.rand_shape_count = False
         self.rand_layout_minor = False
         self.rand_layout_full = rand_layout_full
+        self.init_cost = None
         if rand_shapes:
             self.rand_target_colour = False #True
             self.rand_layout_full = False #True
@@ -418,7 +419,7 @@ class MatchRegionsEnv(BaseEnvXirl):
 
         # set up index for lookups
         self.__ent_index = en.EntityIndex(shape_ents)
-
+        self.init_cost = None
 
     def score_on_end_of_traj(self):
         overlap_ents = self.__sensor_ref.get_overlapping_ents(
@@ -443,6 +444,46 @@ class MatchRegionsEnv(BaseEnvXirl):
         return target_frac_done * (1 - contamination_rate)
     
 ###################### NEW STUFF ######################
+
+    def _simplified_reward(self) -> float:
+        goal_pos = self.__sensor_ref.goal_body.position
+        reward = 0.0
+
+        # Get which entities are in the goal region based on their center of mass
+        overlap_ents = self.__sensor_ref.get_overlapping_ents(
+            ent_index=self.__ent_index, com_overlap=True
+        )
+
+        target_set = set(self.__target_shapes)
+        distractor_set = set(self.__distractor_shapes)
+        n_overlap_targets = len(target_set & overlap_ents)
+        n_overlap_distractors = len(distractor_set & overlap_ents)
+
+        # Placement rewards
+        reward += 5.0 * n_overlap_targets
+        reward -= 5.0 * n_overlap_distractors
+
+        # Smooth distance-based shaping: encourage targets to move toward goal
+        for target_shape in self.__target_shapes:
+            target_pos = target_shape.shape_body.position
+            dist = np.linalg.norm(target_pos - goal_pos)
+
+            shaping = self._distance_reward(dist)
+            max_reward = 5.0  # Cap for full placement
+
+            # Use max between shaping or placement bonus
+            reward += max(shaping, max_reward)
+        
+        reward -= 15
+
+        if not self.init_cost:
+            self.init_cost = reward
+        else:
+            reward = (self.init_cost - reward) / self.init_cost
+        return reward
+
+    def _distance_reward(self, d, alpha=0.006, beta=500, gamma=1e-3):
+        return -alpha * d**2 - beta * np.log(d**2 + gamma)
 
     def _dense_reward(self) -> float:
         """Mean distance of all TARGET entitity positions to goal zone MULTIPLIED for the CONTAMINATION RATE."""
@@ -524,7 +565,8 @@ class MatchRegionsEnv(BaseEnvXirl):
     
     def get_reward(self) -> float:
         if self.use_dense_reward:
-            return self._dense_reward()
+            # return self._dense_reward()
+            return self._simplified_reward()
         return self._sparse_reward()
     
     def get_state(self) -> np.ndarray:
