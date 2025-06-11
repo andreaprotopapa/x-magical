@@ -419,7 +419,11 @@ class MatchRegionsEnv(BaseEnvXirl):
 
         # set up index for lookups
         self.__ent_index = en.EntityIndex(shape_ents)
-        self.init_cost = None
+        self.goal_pos = self.__sensor_ref.goal_body.position
+        self.init_cost = {
+            target_shape: np.linalg.norm(target_shape.shape_body.position - self.goal_pos)
+            for target_shape in self.__target_shapes
+        }
 
     def score_on_end_of_traj(self):
         overlap_ents = self.__sensor_ref.get_overlapping_ents(
@@ -446,7 +450,7 @@ class MatchRegionsEnv(BaseEnvXirl):
 ###################### NEW STUFF ######################
 
     def _simplified_reward(self) -> float:
-        goal_pos = self.__sensor_ref.goal_body.position
+
         reward = 0.0
 
         # Initialize placed_targets tracking if not done
@@ -465,15 +469,14 @@ class MatchRegionsEnv(BaseEnvXirl):
 
         for target_shape in self.__target_shapes:
             target_pos = target_shape.shape_body.position     
-            dist = np.linalg.norm(target_pos - goal_pos)
+            dist = np.linalg.norm(target_pos - self.goal_pos)
 
-            if not self.init_cost:
-                self.init_cost = dist
+            init_dist = self.init_cost[target_shape]
 
             if target_shape in overlap_ents:
                 dist = 0.0  # No distance penalty if target is in goal
                        
-            reward_pos = (self._distance_reward(self.init_cost) - self._distance_reward(dist)) / self._distance_reward(self.init_cost)
+            reward_pos = (self._distance_reward(init_dist) - self._distance_reward(dist)) / self._distance_reward(init_dist)
             reward += reward_pos
 
         return reward
