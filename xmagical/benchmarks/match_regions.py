@@ -469,17 +469,24 @@ class MatchRegionsEnv(BaseEnvXirl):
 
         for target_shape in self.__target_shapes:
             target_pos = target_shape.shape_body.position     
-            dist = np.linalg.norm(target_pos - self.goal_pos)
+            dist_to_goal = np.linalg.norm(target_pos - self.goal_pos)
 
             init_dist = self.init_cost[target_shape]
 
             if target_shape in overlap_ents:
-                dist = 0.0  # No distance penalty if target is in goal
-                       
-            reward_pos = (self._distance_reward(init_dist) - self._distance_reward(dist)) / self._distance_reward(init_dist)
+                dist_to_goal = 0.0  # No distance penalty if target is in goal
+            else:
+                robot_pos = self._robot.body.position
+                dist_to_target = np.linalg.norm(target_pos - robot_pos)
+                proximity_reward = (self._distance_reward(D_MAX) - self._distance_reward(dist_to_target)) / self._distance_reward(D_MAX)
+                # proximity_reward = (1 - (dist_to_target / D_MAX))  # normalized
+                # proximity_reward = np.clip(proximity_reward, 0, 1)  # ensure non-negative
+                reward += 10 * proximity_reward        
+            
+            reward_pos = (self._distance_reward(init_dist) - self._distance_reward(dist_to_goal)) / self._distance_reward(init_dist)
             reward += reward_pos
         
-        reward -= 0.05
+        reward -= 20.8
 
         return reward
 
