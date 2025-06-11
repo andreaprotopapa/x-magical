@@ -449,37 +449,33 @@ class MatchRegionsEnv(BaseEnvXirl):
         goal_pos = self.__sensor_ref.goal_body.position
         reward = 0.0
 
+        # Initialize placed_targets tracking if not done
+        if not hasattr(self, "_placed_targets"):
+            self._placed_targets = set()
+
         # Get which entities are in the goal region based on their center of mass
         overlap_ents = self.__sensor_ref.get_overlapping_ents(
             ent_index=self.__ent_index, com_overlap=True
         )
 
-        target_set = set(self.__target_shapes)
+        # Distractor penalty
         distractor_set = set(self.__distractor_shapes)
-        n_overlap_targets = len(target_set & overlap_ents)
         n_overlap_distractors = len(distractor_set & overlap_ents)
-
-        # Placement rewards
-        reward += 5.0 * n_overlap_targets
         reward -= 5.0 * n_overlap_distractors
 
-        # Smooth distance-based shaping: encourage targets to move toward goal
         for target_shape in self.__target_shapes:
-            target_pos = target_shape.shape_body.position
+            target_pos = target_shape.shape_body.position     
             dist = np.linalg.norm(target_pos - goal_pos)
 
-            shaping = self._distance_reward(dist)
-            max_reward = 5.0  # Cap for full placement
+            if not self.init_cost:
+                self.init_cost = dist
 
-            # Use max between shaping or placement bonus
-            reward += max(shaping, max_reward)
-        
-        reward -= 15
+            if target_shape in overlap_ents:
+                dist = 0.0  # No distance penalty if target is in goal
+                       
+            reward_pos = (self._distance_reward(self.init_cost) - self._distance_reward(dist)) / self._distance_reward(self.init_cost)
+            reward += reward_pos
 
-        if not self.init_cost:
-            self.init_cost = reward
-        else:
-            reward = (self.init_cost - reward) / self.init_cost
         return reward
 
     def _distance_reward(self, d, alpha=0.006, beta=500, gamma=1e-3):
