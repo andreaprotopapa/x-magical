@@ -478,6 +478,8 @@ class MatchRegionsEnv(BaseEnvXirl):
                        
             reward_pos = (self._distance_reward(init_dist) - self._distance_reward(dist)) / self._distance_reward(init_dist)
             reward += reward_pos
+        
+        reward -= 0.05
 
         return reward
 
