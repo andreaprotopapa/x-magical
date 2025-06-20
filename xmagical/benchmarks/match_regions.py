@@ -450,6 +450,40 @@ class MatchRegionsEnv(BaseEnvXirl):
 ###################### NEW STUFF ######################
 
     def _simplified_reward(self) -> float:
+        reward = 0.0
+
+        if not hasattr(self, "_placed_targets"):
+            self._placed_targets = set()
+
+        overlap_ents = self.__sensor_ref.get_overlapping_ents(
+            ent_index=self.__ent_index, com_overlap=True
+        )
+
+        # Penalize distractors in goal region
+        distractor_set = set(self.__distractor_shapes)
+        n_overlap_distractors = len(distractor_set & overlap_ents)
+        reward -= 1.0 * n_overlap_distractors
+
+        # Reward for each target moving toward the goal
+        for target_shape in self.__target_shapes:
+            target_pos = target_shape.shape_body.position
+            dist = np.linalg.norm(target_pos - self.goal_pos)
+            init_dist = self.init_cost[target_shape]
+
+            if target_shape in overlap_ents:
+                dist = 0.0  # full reward if in goal
+
+            reward += (init_dist - dist)  # linear progress reward
+
+        reward -= 0.1  # step penalty
+
+        # Optional: smooth bounded normalization
+        scale = len(self.__target_shapes)  # or average expected distance
+        norm_reward = 10.0 * np.tanh(reward / scale)
+
+        return norm_reward
+
+    def _simplified_reward_with_proximity(self) -> float:
 
         reward = 0.0
 
