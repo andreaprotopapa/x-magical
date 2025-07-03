@@ -79,7 +79,7 @@ class Embodiment(Entity, abc.ABC):
 
         self._setup_body()
         assert self.body is not None
-        self.body.position = self.init_pos
+        self.body.position = pm.Vec2d(*self.init_pos)
         self.body.angle = self.init_angle
         self.add_to_space(self.body)
 
@@ -135,7 +135,7 @@ class NonHolonomicEmbodiment(Embodiment):
 
     def _setup_control_body(self):
         self.control_body = control_body = pm.Body(body_type=pm.Body.KINEMATIC)
-        control_body.position = self.init_pos
+        control_body.position = pm.Vec2d(*self.init_pos)
         control_body.angle = self.init_angle
         self.add_to_space(control_body)
         pos_control_joint = pm.PivotJoint(control_body, self.body, (0, 0), (0, 0))

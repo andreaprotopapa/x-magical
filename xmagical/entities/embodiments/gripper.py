@@ -25,12 +25,11 @@ def make_finger_vertices(upper_arm_len, forearm_len, thickness, side_sign):
     forearm_offset_unrot = pm.vec2d.Vec2d(-side_sign * thickness / 2, forearm_len / 2)
     rot_angle = side_sign * math.pi / 8
     forearm_trans = upper_start + forearm_offset_unrot.rotated(rot_angle)
-    forearm_trans.y += up_shift
+    forearm_trans = pm.Vec2d(forearm_trans.x, forearm_trans.y + up_shift)
     forearm_vertices_trans = [
         v.rotated(rot_angle) + forearm_trans for v in forearm_vertices
     ]
-    for v in upper_arm_vertices:
-        v.y += up_shift
+    upper_arm_vertices = [pm.Vec2d(v.x, v.y + up_shift) for v in upper_arm_vertices]
     upper_arm_verts_final = [(v.x, v.y) for v in upper_arm_vertices]
     forearm_verts_final = [(v.x, v.y) for v in forearm_vertices_trans]
     return upper_arm_verts_final, forearm_verts_final

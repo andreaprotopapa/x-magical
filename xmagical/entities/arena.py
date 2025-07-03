@@ -35,7 +35,7 @@ class ArenaBoundaries(Entity):
             segment = pm.Segment(arena_body, start_point, end_point, rad)
             segment.friction = 0.8
             arena_segments.append(segment)
-        self.add_to_space(*arena_segments)
+        self.add_to_space(arena_body, *arena_segments)
 
         width = self.right - self.left
         height = self.top - self.bottom
