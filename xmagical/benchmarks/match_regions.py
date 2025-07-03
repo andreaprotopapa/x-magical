@@ -265,8 +265,13 @@ class MatchRegionsEnv(BaseEnvXirl):
 
     def on_reset(self):
         # make the robot
-        robot_pos = np.asarray((-0.5, 0.1))
-        robot_angle = -math.pi * 1.2
+        # robot_pos = np.asarray((-0.5, 0.1))
+        # robot_angle = -math.pi * 1.2
+        idx = self.rng.choice([0, 1]) if self.config["randomize_robot_pose"] else 0
+        robot_pos = np.asarray(self.config["robot"]["pos"][idx])
+        robot_angle = -math.pi * self.config["robot"]["rot"][idx]
+        # print(f"Config {idx}: Robot position: {robot_pos}, angle: {robot_angle}")
+
         # if necessary, robot pose is randomised below
         robot = self._make_robot(robot_pos, robot_angle)
         # set up target colour/region/pose
