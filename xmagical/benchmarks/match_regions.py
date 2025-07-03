@@ -313,7 +313,7 @@ class MatchRegionsEnv(BaseEnvXirl):
         ]
         default_target_poses = [
             # (x, y, theta)
-            tuple(self.config["target"][i]['pos']) for i in range(len(self.config["target"]))
+            tuple(self.config["target"][i]['pos'][idx]) for i in range(len(self.config["target"]))
         ]
         default_distractor_poses = [
             # (x, y, theta)
