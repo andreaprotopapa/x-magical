@@ -265,8 +265,13 @@ class MatchRegionsEnv(BaseEnvXirl):
 
     def on_reset(self):
         # make the robot
-        robot_pos = np.asarray((-0.5, 0.1))
-        robot_angle = -math.pi * 1.2
+        # robot_pos = np.asarray((-0.5, 0.1))
+        # robot_angle = -math.pi * 1.2
+        idx = self.rng.choice([0, 1]) if self.config["randomize_robot_pose"] else 0
+        robot_pos = np.asarray(self.config["robot"]["pos"][idx])
+        robot_angle = -math.pi * self.config["robot"]["rot"][idx]
+        print(f"Config {idx}: Robot position: {robot_pos}, angle: {robot_angle}")
+
         # if necessary, robot pose is randomised below
         robot = self._make_robot(robot_pos, robot_angle)
         # set up target colour/region/pose
@@ -308,7 +313,7 @@ class MatchRegionsEnv(BaseEnvXirl):
         ]
         default_target_poses = [
             # (x, y, theta)
-            tuple(self.config["target"][i]['pos']) for i in range(len(self.config["target"]))
+            tuple(self.config["target"][i]['pos'][idx]) for i in range(len(self.config["target"]))
         ]
         default_distractor_poses = [
             # (x, y, theta)
@@ -499,30 +504,29 @@ class MatchRegionsEnv(BaseEnvXirl):
         # Distractor penalty
         distractor_set = set(self.__distractor_shapes)
         n_overlap_distractors = len(distractor_set & overlap_ents)
-        reward -= 5.0 * n_overlap_distractors
+        reward -= 1.0 * n_overlap_distractors
 
         for target_shape in self.__target_shapes:
             target_pos = target_shape.shape_body.position     
             dist_to_goal = np.linalg.norm(target_pos - self.goal_pos)
-
             init_dist = self.init_cost[target_shape]
 
             if target_shape in overlap_ents:
                 dist_to_goal = 0.0  # No distance penalty if target is in goal
+                dist_to_target = 0.0  # No distance to target if in goal
             else:
                 robot_pos = self._robot.body.position
-                dist_to_target = np.linalg.norm(target_pos - robot_pos)
-                proximity_reward = (self._distance_reward(D_MAX) - self._distance_reward(dist_to_target)) / self._distance_reward(D_MAX)
-                # proximity_reward = (1 - (dist_to_target / D_MAX))  # normalized
-                # proximity_reward = np.clip(proximity_reward, 0, 1)  # ensure non-negative
-                reward += 10 * proximity_reward        
+                dist_to_target = np.linalg.norm(target_pos - robot_pos)        
             
-            reward_pos = (self._distance_reward(init_dist) - self._distance_reward(dist_to_goal)) / self._distance_reward(init_dist)
-            reward += reward_pos
+            reward += self._distance_reward(dist_to_goal) + self._distance_reward(dist_to_target)  # linear progress reward
         
-        reward -= 20.8
+        reward -= 0.1  # step penalty
+        print(reward)
+        # Optional: smooth bounded normalization
+        scale = len(self.__target_shapes)  # or average expected distance
+        norm_reward = 10.0 * np.tanh(reward / scale)
 
-        return reward
+        return norm_reward
 
     def _distance_reward(self, d, alpha=0.006, beta=500, gamma=1e-3):
         return -alpha * d**2 - beta * np.log(d**2 + gamma)
@@ -609,6 +613,7 @@ class MatchRegionsEnv(BaseEnvXirl):
         if self.use_dense_reward:
             # return self._dense_reward()
             return self._simplified_reward()
+            # return self._simplified_reward_with_proximity()
         return self._sparse_reward()
     
     def get_state(self) -> np.ndarray:
