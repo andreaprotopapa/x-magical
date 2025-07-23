@@ -13,6 +13,7 @@ from typing import Any, Dict, Tuple
 from xmagical.base_env import BaseEnv as BaseEnvXirl
 import xmagical.geom as geom
 import xmagical.entities as en
+import pdb
 
 colors = {
           "red": en.ShapeColor.RED,
@@ -264,6 +265,7 @@ class MatchRegionsEnv(BaseEnvXirl):
         self.__ent_index = en.EntityIndex(shape_ents)
 
     def on_reset(self):
+        # pdb.set_trace()
         # make the robot
         # robot_pos = np.asarray((-0.5, 0.1))
         # robot_angle = -math.pi * 1.2
@@ -529,6 +531,145 @@ class MatchRegionsEnv(BaseEnvXirl):
 
         return reward
 
+    # def _refined_reward(self) -> float:
+    #     reward = 0.0
+    #     goal_pos = self.goal_pos
+    #     robot_pos = self._robot.body.position
+
+    #     # Initialize placed_targets tracking
+    #     if not hasattr(self, "_placed_targets"):
+    #         self._placed_targets = set()
+
+    #     # Overlaps
+    #     overlap_ents = self.__sensor_ref.get_overlapping_ents(
+    #         ent_index=self.__ent_index, com_overlap=True
+    #     )
+
+    #     # Penalize distractors in goal region
+    #     distractor_set = set(self.__distractor_shapes)
+    #     n_distractors = len(distractor_set & overlap_ents)
+    #     reward -= 0.2 * n_distractors  # scaled to match rest of reward
+
+    #     # Select one unplaced target — e.g., the closest to the robot
+    #     unplaced_targets = [t for t in self.__target_shapes if t not in self._placed_targets]
+    #     # if not unplaced_targets:
+    #     #     return 1.0  # All placed, max reward
+    #     if len(unplaced_targets)==1:
+    #         reward +=35
+    #     if not unplaced_targets:
+    #          return 1  # All placed, max reward
+
+    #     # Pick closest target to robot
+    #     closest_target = min(
+    #         unplaced_targets,
+    #         key=lambda t: np.linalg.norm(t.shape_body.position - robot_pos)
+    #     )
+
+    #     # Distances
+    #     target_pos = closest_target.shape_body.position
+    #     dist_to_goal = np.linalg.norm(target_pos - goal_pos)
+    #     dist_to_target = np.linalg.norm(target_pos - robot_pos)
+    #     init_dist = self.init_cost[closest_target]
+
+    #     # Placement check
+    #     if closest_target in overlap_ents:
+    #         dist_to_goal = 0.0
+    #         if closest_target not in self._placed_targets:
+    #             reward += 1.0  # Placement bonus
+    #             self._placed_targets.add(closest_target)
+
+    #     # Main shaping terms
+    #     goal_shaping = -(
+    #         self._distance_reward(init_dist) - self._distance_reward(dist_to_goal)
+    #     ) / abs(self._distance_reward(init_dist))
+
+    #     reaching_shaping = -(
+    #         self._distance_reward(D_MAX) - self._distance_reward(dist_to_target)
+    #     ) / abs(self._distance_reward(D_MAX))
+
+    #     # Combine with weights
+    #     reward += 1.0 * goal_shaping + 5.0 * reaching_shaping
+    #     reward -= 32.5
+    #     reward /= 65
+    #     # Normalize and clip reward to [-1, 1]
+    #     # reward = np.clip(reward, -1.0, 1.0)
+    #     return reward
+
+    def _refined_reward(self) -> float:
+        reward = 0.0
+        goal_pos = self.goal_pos
+        robot_pos = self._robot.body.position
+
+        # Initialize tracking if not yet set
+        if not hasattr(self, "_placed_targets"):
+            self._placed_targets = set()
+        if not hasattr(self, "_active_target"):
+            self._active_target = None
+
+        # Get which entities are in the goal region (by center of mass)
+        overlap_ents = self.__sensor_ref.get_overlapping_ents(
+            ent_index=self.__ent_index, com_overlap=True
+        )
+
+        # --- (1) Remove any targets pulled out of goal region ---
+        for t in list(self._placed_targets):
+            if t not in overlap_ents:
+                self._placed_targets.remove(t)
+
+        # --- (2) Penalize distractors ---
+        distractor_set = set(self.__distractor_shapes)
+        n_distractors = len(distractor_set & overlap_ents)
+        reward -= 0.2 * n_distractors
+
+        # --- (3) Lock onto a single active target until it's placed ---
+        unplaced_targets = [t for t in self.__target_shapes if t not in self._placed_targets]
+
+        # Optional: bonus if only one object remains
+        if len(unplaced_targets) == 1:
+            reward += 35
+
+        if not unplaced_targets:
+            return 1.0  # all placed
+
+        if self._active_target is None or self._active_target in self._placed_targets:
+            # Select closest target to robot
+            self._active_target = min(
+                unplaced_targets,
+                key=lambda t: np.linalg.norm(t.shape_body.position - robot_pos)
+            )
+
+        # --- (4) Use the active target for shaping ---
+        target = self._active_target
+        target_pos = target.shape_body.position
+        dist_to_goal = np.linalg.norm(target_pos - goal_pos)
+        dist_to_target = np.linalg.norm(target_pos - robot_pos)
+        init_dist = self.init_cost[target]
+
+        # --- (5) Placement bonus ---
+        if target in overlap_ents:
+            dist_to_goal = 0.0
+            if target not in self._placed_targets:
+                reward += 1.0
+                self._placed_targets.add(target)
+
+        # --- (6) Shaping ---
+        goal_shaping = -(
+            self._distance_reward(init_dist) - self._distance_reward(dist_to_goal)
+        ) / abs(self._distance_reward(init_dist))
+
+        reaching_shaping = -(
+            self._distance_reward(D_MAX) - self._distance_reward(dist_to_target)
+        ) / abs(self._distance_reward(D_MAX))
+
+        # --- (7) Weighted sum of shaping ---
+        reward += 1.0 * goal_shaping + 0.8 * reaching_shaping
+
+        # --- (8) Normalize and shift ---
+        reward -= 32.5
+        reward /= 65.0  # Bring into ~[-1, 1]
+        # print("Reward from match_regions.py: ", reward)
+        return reward
+
     def _distance_reward(self, d, alpha=0.006, beta=500, gamma=1e-3):
         return -alpha * d**2 - beta * np.log(d**2 + gamma)
 
@@ -613,7 +754,9 @@ class MatchRegionsEnv(BaseEnvXirl):
     def get_reward(self) -> float:
         if self.use_dense_reward:
             # return self._dense_reward()
-            return self._simplified_reward()
+            # return self._simplified_reward()
+            # return self._simplified_reward_with_proximity()
+            return self._refined_reward()
         return self._sparse_reward()
     
     def get_state(self) -> np.ndarray:
