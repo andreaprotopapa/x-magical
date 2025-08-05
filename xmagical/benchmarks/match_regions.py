@@ -820,8 +820,8 @@ class MatchRegionsEnv(BaseEnvXirl):
         if self.use_dense_reward:
             # return self._dense_reward()
             # return self._simplified_reward()
-            # return self._simplified_reward_with_proximity()
-            return self._refined_reward()
+            return self._simplified_reward_with_proximity()
+            # return self._refined_reward()
         return self._sparse_reward()
     
     def get_state(self) -> np.ndarray:
